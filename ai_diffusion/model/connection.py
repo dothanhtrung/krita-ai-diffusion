@@ -115,7 +115,7 @@ class Connection(QObject, ObservableProperties):
             self.error = e.message
             self.error_kind = "network"
             self.state = ConnectionState.error
-            if e.status == 401:  # Unauthorized
+            if e.status == 401 and settings.server_mode is ServerMode.cloud:
                 settings.access_token = ""
                 self._update_state()
         except MissingResources as e:
@@ -138,7 +138,7 @@ class Connection(QObject, ObservableProperties):
                     return None
                 return CloudClient(CloudClient.default_api_url, settings.access_token)
             case ServerMode.external | ServerMode.managed:
-                return ComfyClient(settings.server_url, settings.access_token)
+                return ComfyClient(settings.server_url, settings.server_authorization)
             case _:
                 raise ValueError(f"Invalid server mode: {settings.server_mode}")
 

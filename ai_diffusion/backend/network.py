@@ -99,17 +99,20 @@ class RequestManager:
     def set_auth(self, bearer: str):
         self._bearer_token = bearer
 
+    def _apply_headers(self, request: QNetworkRequest, bearer: str | None = None):
+        bearer_token = bearer or self._bearer_token
+        if bearer_token:
+            request.setRawHeader(b"Authorization", f"Bearer {bearer_token}".encode())
+        for key, value in self._additional_headers:
+            request.setRawHeader(key, value)
+
     def _prepare_request(self, url: str, timeout: float | None = None, bearer: str | None = None):
         request = QNetworkRequest(QUrl(url))
         request.setAttribute(
             QNetworkRequest.Attribute.RedirectPolicyAttribute,
             QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
         )
-        bearer_token = bearer or self._bearer_token
-        if bearer_token:
-            request.setRawHeader(b"Authorization", f"Bearer {bearer_token}".encode())
-        for key, value in self._additional_headers:
-            request.setRawHeader(key, value)
+        self._apply_headers(request, bearer)
         if timeout is not None:
             request.setTransferTimeout(int(timeout * 1000))
         return request
@@ -170,6 +173,7 @@ class RequestManager:
             QNetworkRequest.Attribute.RedirectPolicyAttribute,
             QNetworkRequest.RedirectPolicy.NoLessSafeRedirectPolicy,
         )
+        self._apply_headers(request)
         if sha256:
             request.setRawHeader(b"x-amz-checksum-sha256", sha256.encode("utf-8"))
         request.setHeader(

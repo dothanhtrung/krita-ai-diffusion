@@ -144,7 +144,6 @@ class ComfyClient(Client):
     def __init__(self, url: str, access_token: str = ""):
         self.url = url
         self.models = ClientModels()
-        self._token = access_token
         self._requests = RequestManager()
         self._id = str(uuid.uuid4())
         self._active_job: JobInfo | None = None
@@ -155,10 +154,11 @@ class ComfyClient(Client):
         self._queue: ClientJobQueue[JobInfo] = ClientJobQueue()
         self._is_connected = False
 
+        self._token = normalize_api_token(access_token or settings.server_authorization)
         self._requests.add_header("ngrok-skip-browser-warning", "69420")
         self._requests.add_header("skip_zrok_interstitial", "69420")
-        if settings.server_authorization:
-            self._requests.set_auth(settings.server_authorization)
+        if self._token:
+            self._requests.set_auth(self._token)
 
     async def connect(self):
         self.url = parse_url(self.url)
@@ -326,7 +326,7 @@ class ComfyClient(Client):
 
     async def _listen(self):
         url = websocket_url(self.url)
-        args = websocket_args(settings.server_authorization)
+        args = websocket_args(self._token)
         async for websocket in websockets.connect(f"{url}/ws?clientId={self._id}", **args):
             try:
                 await self._subscribe_workflows()
@@ -675,6 +675,13 @@ def parse_url(url: str):
 
 def websocket_url(url_http: str):
     return url_http.replace("http", "ws", 1)
+
+
+def normalize_api_token(token: str) -> str:
+    token = token.strip()
+    if token.lower().startswith("bearer "):
+        token = token[7:].strip()
+    return token
 
 
 def websocket_args(auth_token: str):

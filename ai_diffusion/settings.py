@@ -210,7 +210,13 @@ class Settings(QObject):
     )
 
     server_authorization: str
-    _server_authorization = Setting("ComfyUI Authorization Token", "")
+    _server_authorization = Setting(
+        _("API Token"),
+        "",
+        _(
+            "Bearer token for a custom ComfyUI server. Sent as Authorization: Bearer. Leave empty if the server does not require one."
+        ),
+    )
 
     check_server_resources: bool
     _check_server_resources = Setting("Refuse connection if nodes or models are missing", True)
